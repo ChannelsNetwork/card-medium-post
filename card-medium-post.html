@@ -1,0 +1,158 @@
+<link rel="import" href="../polymer-channels-card/polymer-channels-card.html">
+<link rel="import" href="../paper-button/paper-button.html">
+<link rel="import" href="../polymer/polymer-element.html">
+
+<dom-module id="card-medium-post-display">
+  <template>
+    <style>
+      .article {
+        font-family: Verdana, Geneva, Tahoma, sans-serif;
+        font-size: 18px;
+        margin: 15px;
+      }
+
+      .type3 {
+        line-height: 1.1;
+        font-size: 32px;
+        font-weight: bold;
+      }
+
+      .type1 {
+        line-height: 1.5;
+        font-size: 18px;
+      }
+
+      .type4 {
+        width: 100%;
+        height: auto;
+      }
+
+      .type7 {
+        padding-left: 30px;
+        font-size: 22px;
+        color: #aaa;
+        font-style: italic;
+      }
+
+      .type13 {
+        font-size: 22px;
+        font-weight: bold;
+      }
+
+      .invisible {
+        display: none;
+      }
+
+      .common {
+        margin: 25px 0;
+      }
+    </style>
+    <div class="article">
+      <template is="dom-repeat" items="{{graphs}}">
+        <div class$="{{item.classText}}">{{item.contents}}</div>
+        <img class$="{{item.classImage}}" src$="{{item.src}}"></img>
+        <a class$="{{item.classLink}}" href$="{{item.href}}"></a>
+      </template>
+    </div>
+  </template>
+  <script>
+    class CardMediumPostDisplay extends Polymer.Element {
+      static get is() { return 'card-medium-post-display'; }
+      static get properties() {
+        return {
+          graphs: {
+            type: Array,
+            value: function () { return []; }
+          },
+          article: {
+            type: Object,
+            observer: 'onArticleChanged'
+          }
+        };
+      }
+      onArticleChanged() {
+        const graphs = [];
+        for (const g of this.article.payload.value.content.bodyModel.paragraphs) {
+          let graph = {};
+          switch (g.type) {
+            case 4:
+              graph = {
+                classText: 'invisible',
+                classImage: 'common type' + g.type,
+                classLink: 'invisible',
+                src: 'https://cdn-images-1.medium.com/max/1000/' + g.metadata.id
+              };
+              break;
+            default:
+              graph = {
+                classText: 'common type' + g.type,
+                classImage: 'invisible',
+                classLink: 'invisible',
+                contents: g.text
+              };
+              break;
+          }
+          graphs.push(graph);
+        }
+        this.set('graphs', graphs);
+      }
+    }
+    window.customElements.define(CardMediumPostDisplay.is, CardMediumPostDisplay);
+  </script>
+</dom-module>
+
+<dom-module id="card-medium-post-composer">
+  <template>
+    <div>
+      <input type="text" id="mediumUrl"></input>
+      <paper-button id="load" on-click="onLoadClick" raised>Load</paper-button>
+      <paper-button id="send" disabled on-click="onSendClick" raised>Send</paper-button>
+      <div>
+        <card-medium-post-display id="display"></card-medium-post-display>
+      </div>
+    </div>
+  </template>
+  <script>
+    class CardMediumPostComposer extends PolymerChannelsCardComposer {
+      static get is() { return 'card-medium-post-composer'; }
+      // Add other script support needed to assemble the initialization data based on user interaction in the composer
+      onLoadClick() {
+        if (this.$.mediumUrl.value.trim().length > 0) {
+          fetch("http://localhost:33111/d/medium-load?url=" + encodeURI(this.$.mediumUrl.value.trim()), {
+            method: 'GET',
+            mode: "cors"
+          }).then((response) => {
+            response.json().then((result) => {
+              console.log("Response", result);
+              this.$.display.article = result;
+            }).catch((err) => {
+              console.log("Response error", err);
+            });
+          }).catch((err) => {
+            console.log("Fetch error", err);
+          });
+        }
+      }
+      onSendClick() {
+        this.send({ /* enter your initialization data here that will be used to initialize 'data' property in the viewer */ });
+      }
+    }
+    window.customElements.define(CardMediumPostComposer.is, CardMediumPostComposer);
+  </script>
+</dom-module>
+
+<dom-module id="card-medium-post-viewer">
+  <template>
+    <div>
+      Your card viewer markup goes here
+    </div>
+  </template>
+  <script>
+    class CardMediumPostViewer extends PolymerChannelsCardViewer {
+      static get is() { return 'card-medium-post-viewer'; }
+      // Add other script support needed to display or for the participant to interact with the card,
+      // calling this.stateController when appropriate to share state changed with other participants.
+    }
+    window.customElements.define(CardMediumPostViewer.is, CardMediumPostViewer);
+  </script>
+</dom-module>
